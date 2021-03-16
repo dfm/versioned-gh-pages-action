@@ -3,8 +3,16 @@ description: 'Version your GitHub pages generated using GitHub Actions'
 author: 'Dan Foreman-Mackey'
 inputs:
   path:
-    required: true
     description: 'Path to generated static site'
+    required: true
+  target-branch:
+    description: 'The target GitHub pages branch'
+    required: false
+    default: 'gh-pages'
+  github-token:
+    description: "A token for access to GitHub (e.g. 'secrets.GITHUB_TOKEN')"
+    required: false
+    default: ${{ github.token }}
 runs:
   using: 'node12'
   main: 'dist/index.js'
