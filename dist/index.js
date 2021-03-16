@@ -36,12 +36,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.checkoutRepo = exports.getRemoteURL = void 0;
+exports.copyAssets = exports.checkoutRepo = exports.getRemoteURL = void 0;
 const path = __importStar(__nccwpck_require__(5622));
 const io = __importStar(__nccwpck_require__(7436));
 const uuid_1 = __nccwpck_require__(9521);
 const exec = __importStar(__nccwpck_require__(1514));
 const core = __importStar(__nccwpck_require__(2186));
+const fs = __importStar(__nccwpck_require__(5747));
 function createTempDirectory() {
     return __awaiter(this, void 0, void 0, function* () {
         const IS_WINDOWS = process.platform === 'win32';
@@ -74,20 +75,36 @@ exports.getRemoteURL = getRemoteURL;
 function checkoutRepo(remoteURL, targetBranch) {
     return __awaiter(this, void 0, void 0, function* () {
         const tempDirectory = yield createTempDirectory();
-        const code = yield exec.exec('git', [
-            'clone',
-            '--depth=1',
-            '--single-branch',
-            '--branch',
-            targetBranch,
-            remoteURL,
-            tempDirectory
-        ]);
-        core.info(`Code: ${code}`);
+        try {
+            yield exec.exec('git', [
+                'clone',
+                '--depth=1',
+                '--single-branch',
+                '--branch',
+                targetBranch,
+                remoteURL,
+                tempDirectory
+            ]);
+            core.info(`[INFO] Checked out to ${tempDirectory}`);
+        }
+        catch (e) {
+            core.info(`[INFO] Branch (${targetBranch}) doesn't exist; it will be created`);
+        }
         return tempDirectory;
     });
 }
 exports.checkoutRepo = checkoutRepo;
+function copyAssets(sourceDir, destDir) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (fs.existsSync(destDir)) {
+            core.info(`[INFO] Removing ${destDir}`);
+            yield io.rmRF(destDir);
+        }
+        core.info(`[INFO] Copying ${sourceDir} to ${destDir}`);
+        yield io.cp(sourceDir, destDir, { recursive: true, force: true });
+    });
+}
+exports.copyAssets = copyAssets;
 
 
 /***/ }),
@@ -130,6 +147,8 @@ const github_1 = __nccwpck_require__(5438);
 const core = __importStar(__nccwpck_require__(2186));
 const tag_1 = __nccwpck_require__(2829);
 const git_1 = __nccwpck_require__(3374);
+const path = __importStar(__nccwpck_require__(5622));
+const fs = __importStar(__nccwpck_require__(5747));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -145,14 +164,28 @@ function run() {
                     return;
                 }
             }
+            const sourceDir = core.getInput('path');
+            if (!fs.existsSync(sourceDir)) {
+                core.warning(`The source directory ${sourceDir} doesn't exist`);
+                core.setOutput('skip', 'true');
+                return;
+            }
             // Extract the version tag. This will be a tag or branch name
             const tag = tag_1.getTag(github_1.context.ref);
             core.info(`[INFO] Working on version: ${tag}`);
+            // Construct the repo URL
             const token = core.getInput('github-token');
             const remoteURL = git_1.getRemoteURL(github_1.context.repo.owner, github_1.context.repo.repo, token);
+            // Check out the existing branch if possible
+            core.startGroup('Checking out existing branch');
             const targetBranch = core.getInput('target-branch');
-            const tempDirectory = git_1.checkoutRepo(remoteURL, targetBranch);
-            core.info(`[INFO] Checked out to ${tempDirectory}`);
+            const tempDirectory = yield git_1.checkoutRepo(remoteURL, targetBranch);
+            core.endGroup();
+            // Copy over the files
+            core.startGroup('Copying generated files');
+            git_1.copyAssets(sourceDir, path.join(tempDirectory, tag));
+            core.endGroup();
+            core.setOutput('outputDirectory', tempDirectory);
         }
         catch (error) {
             core.setFailed(error.message);

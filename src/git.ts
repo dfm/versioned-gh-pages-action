@@ -3,6 +3,7 @@ import * as io from '@actions/io'
 import { v4 as uuidV4 } from 'uuid'
 import * as exec from '@actions/exec'
 import * as core from '@actions/core'
+import * as fs from 'fs';
 
 async function createTempDirectory(): Promise<string> {
   const IS_WINDOWS = process.platform === 'win32'
@@ -35,16 +36,32 @@ export async function checkoutRepo(
   targetBranch: string
 ): Promise<string> {
   const tempDirectory = await createTempDirectory()
-  const code = await exec.exec('git', [
-    'clone',
-    '--depth=1',
-    '--single-branch',
-    '--branch',
-    targetBranch,
-    remoteURL,
-    tempDirectory
-  ])
-  core.info(`Code: ${code}`)
-
+  try {
+    await exec.exec('git', [
+      'clone',
+      '--depth=1',
+      '--single-branch',
+      '--branch',
+      targetBranch,
+      remoteURL,
+      tempDirectory
+    ])
+    core.info(`[INFO] Checked out to ${tempDirectory}`)
+  } catch (e) {
+    core.info(`[INFO] Branch (${targetBranch}) doesn't exist; it will be created`);
+  }
   return tempDirectory;
+}
+
+export async function copyAssets(
+  sourceDir: string,
+  destDir: string
+): Promise<void> {
+  if (fs.existsSync(destDir)) {
+    core.info(`[INFO] Removing ${destDir}`);
+    await io.rmRF(destDir);
+  }
+
+  core.info(`[INFO] Copying ${sourceDir} to ${destDir}`);
+  await io.cp(sourceDir, destDir, { recursive: true, force: true })
 }
