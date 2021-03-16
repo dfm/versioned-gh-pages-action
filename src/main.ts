@@ -20,8 +20,10 @@ async function run(): Promise<void> {
 
     // Extract the version tag. This will be a tag or branch name
     const tag: string = getTag();
-    const token: string = core.getInput('github-token');
-    const targetBranch: string = core.getInput('target-branch');
+    // const token: string = core.getInput('github-token');
+    // const targetBranch: string = core.getInput('target-branch');
+
+    core.info(`Tag: ${tag}`)
 
   } catch (error) {
     core.setFailed(error.message)
