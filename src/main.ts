@@ -47,9 +47,14 @@ async function run(): Promise<void> {
 
     // Update the version list
     core.startGroup('Updating version list')
-    const defaultVersion = core.getInput('default-version')
+    let defaultVersion = core.getInput('default-version')
     const versions = updateVersions(tempDirectory, tag)
-    core.info(`[INFO] Versions: ${versions}`)
+    if (!versions.versions.includes(defaultVersion)) {
+      core.warning(
+        `The ${defaultVersion} version doesn't exist; setting ${tag} as default version`
+      )
+      defaultVersion = tag
+    }
     core.endGroup()
 
     // Copy over the files

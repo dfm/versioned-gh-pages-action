@@ -125,7 +125,10 @@ function createRedirect(workDir, defaultVersion) {
 exports.createRedirect = createRedirect;
 function updateVersions(workDir, currentVersion) {
     const filepath = path.join(workDir, 'versions.json');
-    let data = { versions: ["v0.0.1", "v0.1.0", "v0.2.0rc1"] };
+    let data = {
+        stable: currentVersion,
+        versions: ['v0.0.1', 'v0.1.0', 'v0.2.0rc1']
+    };
     try {
         data = JSON.parse(fs.readFileSync(filepath).toString());
     }
@@ -136,10 +139,19 @@ function updateVersions(workDir, currentVersion) {
         data.versions = [currentVersion];
     if (!data.versions.includes(currentVersion))
         data.versions.push(currentVersion);
-    data.versions = data.versions.sort(semver.compare);
-    core.info(`[INFO] Available versions: ${data.versions}`);
+    // Sort the tagged releases and select the stable version as the most recent
+    const sortedReleases = data.versions.filter((v) => semver.valid(v)).sort(semver.compare);
+    if (sortedReleases.includes(currentVersion) && sortedReleases[sortedReleases.length - 1] === currentVersion) {
+        data.stable = currentVersion;
+    }
+    // If there is no tagged versions, we'll save this as the current stable release
+    if (!data.stable)
+        data.stable = currentVersion;
+    // Update the database of saved versions
     fs.writeFileSync(filepath, JSON.stringify(data));
-    return data.versions;
+    core.info(`[INFO] Available versions: ${data.versions}`);
+    core.info(`[INFO] Current stable versions: ${data.stable}`);
+    return data;
 }
 exports.updateVersions = updateVersions;
 
@@ -217,9 +229,12 @@ function run() {
             core.endGroup();
             // Update the version list
             core.startGroup('Updating version list');
-            const defaultVersion = core.getInput('default-version');
+            let defaultVersion = core.getInput('default-version');
             const versions = git_1.updateVersions(tempDirectory, tag);
-            core.info(`[INFO] Versions: ${versions}`);
+            if (!versions.versions.includes(defaultVersion)) {
+                core.warning(`The ${defaultVersion} version doesn't exist; setting ${tag} as default version`);
+                defaultVersion = tag;
+            }
             core.endGroup();
             // Copy over the files
             core.startGroup('Copying generated files');

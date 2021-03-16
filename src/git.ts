@@ -94,10 +94,11 @@ export function createRedirect(workDir: string, defaultVersion: string): void {
 export function updateVersions(
   workDir: string,
   currentVersion: string
-): string[] {
+): {stable: string; versions: string[]} {
   const filepath = path.join(workDir, 'versions.json')
 
-  let data: {versions?: string[]} = {
+  let data = {
+    stable: currentVersion,
     versions: ['v0.0.1', 'v0.1.0', 'v0.2.0rc1']
   }
   try {
@@ -110,11 +111,25 @@ export function updateVersions(
   if (!data.versions.includes(currentVersion))
     data.versions.push(currentVersion)
 
-  data.versions = data.versions.sort(semver.compare)
+  // Sort the tagged releases and select the stable version as the most recent
+  const sortedReleases = data.versions
+    .filter(v => semver.valid(v))
+    .sort(semver.compare)
+  if (
+    sortedReleases.includes(currentVersion) &&
+    sortedReleases[sortedReleases.length - 1] === currentVersion
+  ) {
+    data.stable = currentVersion
+  }
 
-  core.info(`[INFO] Available versions: ${data.versions}`)
+  // If there is no tagged versions, we'll save this as the current stable release
+  if (!data.stable) data.stable = currentVersion
 
+  // Update the database of saved versions
   fs.writeFileSync(filepath, JSON.stringify(data))
 
-  return data.versions
+  core.info(`[INFO] Available versions: ${data.versions}`)
+  core.info(`[INFO] Current stable versions: ${data.stable}`)
+
+  return data
 }
