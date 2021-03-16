@@ -1,11 +1,10 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Versioned GitHub Pages action'
+description: 'Version your GitHub pages generated using GitHub Actions'
+author: 'Dan Foreman-Mackey'
 inputs:
-  milliseconds: # change this
+  path:
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+    description: 'Path to generated static site'
 runs:
   using: 'node12'
   main: 'dist/index.js'
