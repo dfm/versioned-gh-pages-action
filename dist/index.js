@@ -143,17 +143,11 @@ function updateVersions(workDir, currentVersion) {
     const sortedReleases = data.versions
         .filter(v => semver.valid(v))
         .sort(semver.compare);
-    if (sortedReleases.includes(currentVersion) &&
-        sortedReleases[sortedReleases.length - 1] === currentVersion) {
-        data.stable = currentVersion;
+    if (sortedReleases.length > 0) {
+        data.stable = sortedReleases[sortedReleases.length - 1];
     }
-    if (!data.stable) {
-        if (sortedReleases.length > 0) {
-            data.stable = sortedReleases[sortedReleases.length - 1];
-        }
-        else {
-            data.stable = currentVersion;
-        }
+    else {
+        data.stable = currentVersion;
     }
     // Update the database of saved versions
     fs.writeFileSync(filepath, JSON.stringify(data));

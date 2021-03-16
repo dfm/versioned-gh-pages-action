@@ -115,18 +115,10 @@ export function updateVersions(
   const sortedReleases = data.versions
     .filter(v => semver.valid(v))
     .sort(semver.compare)
-  if (
-    sortedReleases.includes(currentVersion) &&
-    sortedReleases[sortedReleases.length - 1] === currentVersion
-  ) {
+  if (sortedReleases.length > 0) {
+    data.stable = sortedReleases[sortedReleases.length - 1]
+  } else {
     data.stable = currentVersion
-  }
-  if (!data.stable) {
-    if (sortedReleases.length > 0) {
-      data.stable = sortedReleases[sortedReleases.length - 1]
-    } else {
-      data.stable = currentVersion
-    }
   }
 
   // Update the database of saved versions
