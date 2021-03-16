@@ -43,6 +43,7 @@ const uuid_1 = __nccwpck_require__(9521);
 const exec = __importStar(__nccwpck_require__(1514));
 const core = __importStar(__nccwpck_require__(2186));
 const fs = __importStar(__nccwpck_require__(5747));
+const semver = __importStar(__nccwpck_require__(1383));
 function createTempDirectory() {
     return __awaiter(this, void 0, void 0, function* () {
         const IS_WINDOWS = process.platform === 'win32';
@@ -124,7 +125,7 @@ function createRedirect(workDir, defaultVersion) {
 exports.createRedirect = createRedirect;
 function updateVersions(workDir, currentVersion) {
     const filepath = path.join(workDir, 'versions.json');
-    let data = { versions: [] };
+    let data = { versions: ["v0.0.1", "v0.1.0", "v0.2.0rc1"] };
     try {
         data = JSON.parse(fs.readFileSync(filepath).toString());
     }
@@ -135,6 +136,8 @@ function updateVersions(workDir, currentVersion) {
         data.versions = [currentVersion];
     if (!data.versions.includes(currentVersion))
         data.versions.push(currentVersion);
+    data.versions = data.versions.sort(semver.compare);
+    core.info(`[INFO] Available versions: ${data.versions}`);
     fs.writeFileSync(filepath, JSON.stringify(data));
     return data.versions;
 }

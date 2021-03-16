@@ -4,6 +4,7 @@ import {v4 as uuidV4} from 'uuid'
 import * as exec from '@actions/exec'
 import * as core from '@actions/core'
 import * as fs from 'fs'
+import * as semver from 'semver'
 
 async function createTempDirectory(): Promise<string> {
   const IS_WINDOWS = process.platform === 'win32'
@@ -96,7 +97,9 @@ export function updateVersions(
 ): string[] {
   const filepath = path.join(workDir, 'versions.json')
 
-  let data: {versions?: string[]} = {versions: []}
+  let data: {versions?: string[]} = {
+    versions: ['v0.0.1', 'v0.1.0', 'v0.2.0rc1']
+  }
   try {
     data = JSON.parse(fs.readFileSync(filepath).toString())
   } catch (e) {
@@ -106,6 +109,10 @@ export function updateVersions(
   if (!data.versions) data.versions = [currentVersion]
   if (!data.versions.includes(currentVersion))
     data.versions.push(currentVersion)
+
+  data.versions = data.versions.sort(semver.compare)
+
+  core.info(`[INFO] Available versions: ${data.versions}`)
 
   fs.writeFileSync(filepath, JSON.stringify(data))
 
