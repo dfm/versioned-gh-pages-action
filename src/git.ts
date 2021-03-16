@@ -3,7 +3,8 @@ import * as io from '@actions/io'
 import { v4 as uuidV4 } from 'uuid'
 import * as exec from '@actions/exec'
 import * as core from '@actions/core'
-import * as fs from 'fs';
+import * as fs from 'fs'
+import { promises as fsp } from 'fs'
 
 async function createTempDirectory(): Promise<string> {
   const IS_WINDOWS = process.platform === 'win32'
@@ -48,7 +49,7 @@ export async function checkoutRepo(
     ])
     core.info(`[INFO] Checked out to ${tempDirectory}`)
   } catch (e) {
-    core.info(`[INFO] Branch (${targetBranch}) doesn't exist; it will be created`);
+    core.info(`[INFO] Branch (${targetBranch}) doesn't exist; starting fresh`);
   }
   return tempDirectory;
 }
@@ -64,4 +65,37 @@ export async function copyAssets(
 
   core.info(`[INFO] Copying ${sourceDir} to ${destDir}`);
   await io.cp(sourceDir, destDir, { recursive: true, force: true })
+}
+
+export function createRedirect(workDir: string, defaultVersion: string) {
+  core.info(`[INFO] Writing redirect to 'index.html'`);
+  const filepath = path.join(workDir, 'index.html');
+  fs.writeFileSync(filepath, `<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; url=${defaultVersion}">
+  <script type="text/javascript">window.location.href = "${defaultVersion}"</script>
+  <title>Redirecting...</title>
+</head>
+<body>
+  If you are not redirected automatically, follow this <a href='${defaultVersion}'>link to the docs</a>.
+</body>
+</html>`);
+}
+
+export function updateVersions(workDir: string, currentVersion: string): string[] {
+  const filepath = path.join(workDir, 'index.html');
+
+  let data: { versions?: string[] } = { versions: [] }
+  try {
+    data = JSON.parse(fs.readFileSync(filepath).toString());
+  } catch (e) {
+    core.info(`[INFO] Failed to load versions: ${e}`)
+  }
+
+  if (!data.versions) data.versions = [currentVersion]
+  if (data.versions.indexOf(currentVersion) < 0) data.versions.push(currentVersion);
+
+  return data.versions
 }

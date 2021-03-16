@@ -1,7 +1,7 @@
 import { context } from '@actions/github'
 import * as core from '@actions/core'
 import { getTag } from './tag'
-import { checkoutRepo, copyAssets, getRemoteURL } from './git'
+import { checkoutRepo, copyAssets, createRedirect, getRemoteURL, updateVersions } from './git'
 import * as path from 'path'
 import * as fs from 'fs';
 
@@ -10,15 +10,12 @@ async function run(): Promise<void> {
     core.info('[INFO] Usage https://github.com/dfm/versioned-gh-pages-action')
 
     // Don't run on forks
-    const eventName = context.eventName
-    if (eventName === 'pull_request' || eventName === 'push') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const isFork = (context.payload as any).repository.fork
-      if (isFork) {
-        core.warning('Skip deployment on fork')
-        core.setOutput('skip', 'true')
-        return
-      }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const isFork = (context.payload as any).repository.fork
+    if (isFork) {
+      core.warning('Skip deployment on fork')
+      core.setOutput('skip', 'true')
+      return
     }
 
     const sourceDir: string = core.getInput('path');
@@ -42,11 +39,18 @@ async function run(): Promise<void> {
     const tempDirectory = await checkoutRepo(remoteURL, targetBranch);
     core.endGroup();
 
+    // Update the version list
+    const defaultVersion = core.getInput('default-version')
+    const versions = updateVersions(tempDirectory, tag);
+    core.info(`[INFO] Versions: ${versions}`)
+
     // Copy over the files
     core.startGroup('Copying generated files');
     copyAssets(sourceDir, path.join(tempDirectory, tag))
+    createRedirect(tempDirectory, defaultVersion);
     core.endGroup();
 
+    // Save the output directory
     core.setOutput('outputDirectory', tempDirectory)
   } catch (error) {
     core.setFailed(error.message)

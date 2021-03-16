@@ -5,6 +5,9 @@ inputs:
   path:
     description: 'Path to generated static site'
     required: true
+  default-version:
+    description: 'The default version of the site'
+    required: true
   target-branch:
     description: 'The target GitHub pages branch'
     required: false

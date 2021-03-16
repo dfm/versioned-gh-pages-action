@@ -36,7 +36,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.copyAssets = exports.checkoutRepo = exports.getRemoteURL = void 0;
+exports.updateVersions = exports.createRedirect = exports.copyAssets = exports.checkoutRepo = exports.getRemoteURL = void 0;
 const path = __importStar(__nccwpck_require__(5622));
 const io = __importStar(__nccwpck_require__(7436));
 const uuid_1 = __nccwpck_require__(9521);
@@ -88,7 +88,7 @@ function checkoutRepo(remoteURL, targetBranch) {
             core.info(`[INFO] Checked out to ${tempDirectory}`);
         }
         catch (e) {
-            core.info(`[INFO] Branch (${targetBranch}) doesn't exist; it will be created`);
+            core.info(`[INFO] Branch (${targetBranch}) doesn't exist; starting fresh`);
         }
         return tempDirectory;
     });
@@ -105,6 +105,39 @@ function copyAssets(sourceDir, destDir) {
     });
 }
 exports.copyAssets = copyAssets;
+function createRedirect(workDir, defaultVersion) {
+    core.info(`[INFO] Writing redirect to 'index.html'`);
+    const filepath = path.join(workDir, 'index.html');
+    fs.writeFileSync(filepath, `<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; url=${defaultVersion}">
+  <script type="text/javascript">window.location.href = "${defaultVersion}"</script>
+  <title>Redirecting...</title>
+</head>
+<body>
+  If you are not redirected automatically, follow this <a href='${defaultVersion}'>link to the docs</a>.
+</body>
+</html>`);
+}
+exports.createRedirect = createRedirect;
+function updateVersions(workDir, currentVersion) {
+    const filepath = path.join(workDir, 'index.html');
+    let data = { versions: [] };
+    try {
+        data = JSON.parse(fs.readFileSync(filepath).toString());
+    }
+    catch (e) {
+        core.info(`[INFO] Failed to load versions: ${e}`);
+    }
+    if (!data.versions)
+        data.versions = [currentVersion];
+    if (data.versions.indexOf(currentVersion) < 0)
+        data.versions.push(currentVersion);
+    return data.versions;
+}
+exports.updateVersions = updateVersions;
 
 
 /***/ }),
@@ -154,15 +187,12 @@ function run() {
         try {
             core.info('[INFO] Usage https://github.com/dfm/versioned-gh-pages-action');
             // Don't run on forks
-            const eventName = github_1.context.eventName;
-            if (eventName === 'pull_request' || eventName === 'push') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const isFork = github_1.context.payload.repository.fork;
-                if (isFork) {
-                    core.warning('Skip deployment on fork');
-                    core.setOutput('skip', 'true');
-                    return;
-                }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const isFork = github_1.context.payload.repository.fork;
+            if (isFork) {
+                core.warning('Skip deployment on fork');
+                core.setOutput('skip', 'true');
+                return;
             }
             const sourceDir = core.getInput('path');
             if (!fs.existsSync(sourceDir)) {
@@ -181,10 +211,16 @@ function run() {
             const targetBranch = core.getInput('target-branch');
             const tempDirectory = yield git_1.checkoutRepo(remoteURL, targetBranch);
             core.endGroup();
+            // Update the version list
+            const defaultVersion = core.getInput('default-version');
+            const versions = git_1.updateVersions(tempDirectory, tag);
+            core.info(`[INFO] Versions: ${versions}`);
             // Copy over the files
             core.startGroup('Copying generated files');
             git_1.copyAssets(sourceDir, path.join(tempDirectory, tag));
+            git_1.createRedirect(tempDirectory, defaultVersion);
             core.endGroup();
+            // Save the output directory
             core.setOutput('outputDirectory', tempDirectory);
         }
         catch (error) {

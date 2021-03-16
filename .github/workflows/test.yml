@@ -23,4 +23,5 @@ jobs:
         id: deploy
         with:
           path: src
+          default-version: main
       - run: ls ${{ steps.deploy.outputs.outputDirectory }}
