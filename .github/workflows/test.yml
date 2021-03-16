@@ -25,6 +25,6 @@ jobs:
           path: src
           default-version: main
       - run: |
-        ls ${{ steps.deploy.outputs.outputDirectory }}
-        cat ${{ steps.deploy.outputs.outputDirectory }}/index.html
-        cat ${{ steps.deploy.outputs.outputDirectory }}/versions.json
+          ls ${{ steps.deploy.outputs.outputDirectory }}
+          cat ${{ steps.deploy.outputs.outputDirectory }}/index.html
+          cat ${{ steps.deploy.outputs.outputDirectory }}/versions.json

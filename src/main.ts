@@ -1,9 +1,15 @@
-import { context } from '@actions/github'
+import {context} from '@actions/github'
 import * as core from '@actions/core'
-import { getTag } from './tag'
-import { checkoutRepo, copyAssets, createRedirect, getRemoteURL, updateVersions } from './git'
+import {getTag} from './tag'
+import {
+  checkoutRepo,
+  copyAssets,
+  createRedirect,
+  getRemoteURL,
+  updateVersions
+} from './git'
 import * as path from 'path'
-import * as fs from 'fs';
+import * as fs from 'fs'
 
 async function run(): Promise<void> {
   try {
@@ -18,7 +24,7 @@ async function run(): Promise<void> {
       return
     }
 
-    const sourceDir: string = core.getInput('path');
+    const sourceDir: string = core.getInput('path')
     if (!fs.existsSync(sourceDir)) {
       core.warning(`The source directory ${sourceDir} doesn't exist`)
       core.setOutput('skip', 'true')
@@ -30,25 +36,27 @@ async function run(): Promise<void> {
     core.info(`[INFO] Working on version: ${tag}`)
 
     // Construct the repo URL
-    const token: string = core.getInput('github-token');
+    const token: string = core.getInput('github-token')
     const remoteURL = getRemoteURL(context.repo.owner, context.repo.repo, token)
 
     // Check out the existing branch if possible
-    core.startGroup('Checking out existing branch');
-    const targetBranch: string = core.getInput('target-branch');
-    const tempDirectory = await checkoutRepo(remoteURL, targetBranch);
-    core.endGroup();
+    core.startGroup('Checking out existing branch')
+    const targetBranch: string = core.getInput('target-branch')
+    const tempDirectory = await checkoutRepo(remoteURL, targetBranch)
+    core.endGroup()
 
     // Update the version list
+    core.startGroup('Updating version list')
     const defaultVersion = core.getInput('default-version')
-    const versions = updateVersions(tempDirectory, tag);
+    const versions = updateVersions(tempDirectory, tag)
     core.info(`[INFO] Versions: ${versions}`)
+    core.endGroup()
 
     // Copy over the files
-    core.startGroup('Copying generated files');
+    core.startGroup('Copying generated files')
     copyAssets(sourceDir, path.join(tempDirectory, tag))
-    createRedirect(tempDirectory, defaultVersion);
-    core.endGroup();
+    createRedirect(tempDirectory, defaultVersion)
+    core.endGroup()
 
     // Save the output directory
     core.setOutput('outputDirectory', tempDirectory)

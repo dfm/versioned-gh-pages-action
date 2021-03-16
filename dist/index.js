@@ -133,7 +133,7 @@ function updateVersions(workDir, currentVersion) {
     }
     if (!data.versions)
         data.versions = [currentVersion];
-    if (data.versions.indexOf(currentVersion) < 0)
+    if (!data.versions.includes(currentVersion))
         data.versions.push(currentVersion);
     fs.writeFileSync(filepath, data.toString());
     return data.versions;
@@ -213,9 +213,11 @@ function run() {
             const tempDirectory = yield git_1.checkoutRepo(remoteURL, targetBranch);
             core.endGroup();
             // Update the version list
+            core.startGroup('Updating version list');
             const defaultVersion = core.getInput('default-version');
             const versions = git_1.updateVersions(tempDirectory, tag);
             core.info(`[INFO] Versions: ${versions}`);
+            core.endGroup();
             // Copy over the files
             core.startGroup('Copying generated files');
             git_1.copyAssets(sourceDir, path.join(tempDirectory, tag));

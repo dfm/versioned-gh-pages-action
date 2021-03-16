@@ -1,1 +1,1 @@
-test('dummy', async () => { })
+test('dummy', async () => {})

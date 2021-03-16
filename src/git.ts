@@ -1,10 +1,9 @@
 import * as path from 'path'
 import * as io from '@actions/io'
-import { v4 as uuidV4 } from 'uuid'
+import {v4 as uuidV4} from 'uuid'
 import * as exec from '@actions/exec'
 import * as core from '@actions/core'
 import * as fs from 'fs'
-import { promises as fsp } from 'fs'
 
 async function createTempDirectory(): Promise<string> {
   const IS_WINDOWS = process.platform === 'win32'
@@ -28,7 +27,11 @@ async function createTempDirectory(): Promise<string> {
   return dest
 }
 
-export function getRemoteURL(user: string, repo: string, token: string): string {
+export function getRemoteURL(
+  user: string,
+  repo: string,
+  token: string
+): string {
   return `https://x-access-token:${token}@github.com/${user}/${repo}.git`
 }
 
@@ -49,9 +52,9 @@ export async function checkoutRepo(
     ])
     core.info(`[INFO] Checked out to ${tempDirectory}`)
   } catch (e) {
-    core.info(`[INFO] Branch (${targetBranch}) doesn't exist; starting fresh`);
+    core.info(`[INFO] Branch (${targetBranch}) doesn't exist; starting fresh`)
   }
-  return tempDirectory;
+  return tempDirectory
 }
 
 export async function copyAssets(
@@ -59,18 +62,20 @@ export async function copyAssets(
   destDir: string
 ): Promise<void> {
   if (fs.existsSync(destDir)) {
-    core.info(`[INFO] Removing ${destDir}`);
-    await io.rmRF(destDir);
+    core.info(`[INFO] Removing ${destDir}`)
+    await io.rmRF(destDir)
   }
 
-  core.info(`[INFO] Copying ${sourceDir} to ${destDir}`);
-  await io.cp(sourceDir, destDir, { recursive: true, force: true })
+  core.info(`[INFO] Copying ${sourceDir} to ${destDir}`)
+  await io.cp(sourceDir, destDir, {recursive: true, force: true})
 }
 
-export function createRedirect(workDir: string, defaultVersion: string) {
-  core.info(`[INFO] Writing redirect to 'index.html'`);
-  const filepath = path.join(workDir, 'index.html');
-  fs.writeFileSync(filepath, `<!DOCTYPE HTML>
+export function createRedirect(workDir: string, defaultVersion: string): void {
+  core.info(`[INFO] Writing redirect to 'index.html'`)
+  const filepath = path.join(workDir, 'index.html')
+  fs.writeFileSync(
+    filepath,
+    `<!DOCTYPE HTML>
 <html lang="en-US">
 <head>
   <meta charset="UTF-8">
@@ -81,21 +86,26 @@ export function createRedirect(workDir: string, defaultVersion: string) {
 <body>
   If you are not redirected automatically, follow this <a href='${defaultVersion}'>link to the docs</a>.
 </body>
-</html>`);
+</html>`
+  )
 }
 
-export function updateVersions(workDir: string, currentVersion: string): string[] {
-  const filepath = path.join(workDir, 'versions.json');
+export function updateVersions(
+  workDir: string,
+  currentVersion: string
+): string[] {
+  const filepath = path.join(workDir, 'versions.json')
 
-  let data: { versions?: string[] } = { versions: [] }
+  let data: {versions?: string[]} = {versions: []}
   try {
-    data = JSON.parse(fs.readFileSync(filepath).toString());
+    data = JSON.parse(fs.readFileSync(filepath).toString())
   } catch (e) {
     core.info(`[INFO] Failed to load versions: ${e}`)
   }
 
   if (!data.versions) data.versions = [currentVersion]
-  if (data.versions.indexOf(currentVersion) < 0) data.versions.push(currentVersion);
+  if (!data.versions.includes(currentVersion))
+    data.versions.push(currentVersion)
 
   fs.writeFileSync(filepath, data.toString())
 
