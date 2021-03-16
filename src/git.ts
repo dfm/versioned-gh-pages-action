@@ -85,7 +85,7 @@ export function createRedirect(workDir: string, defaultVersion: string) {
 }
 
 export function updateVersions(workDir: string, currentVersion: string): string[] {
-  const filepath = path.join(workDir, 'index.html');
+  const filepath = path.join(workDir, 'versions.json');
 
   let data: { versions?: string[] } = { versions: [] }
   try {
@@ -96,6 +96,8 @@ export function updateVersions(workDir: string, currentVersion: string): string[
 
   if (!data.versions) data.versions = [currentVersion]
   if (data.versions.indexOf(currentVersion) < 0) data.versions.push(currentVersion);
+
+  fs.writeFileSync(filepath, data.toString())
 
   return data.versions
 }
