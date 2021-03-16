@@ -1,10 +1,10 @@
 import * as path from 'path'
 import * as io from '@actions/io'
-import {v4 as uuidV4} from 'uuid'
+import { v4 as uuidV4 } from 'uuid'
 import * as exec from '@actions/exec'
 import * as core from '@actions/core'
 
-export async function createTempDirectory(): Promise<string> {
+async function createTempDirectory(): Promise<string> {
   const IS_WINDOWS = process.platform === 'win32'
   let tempDirectory: string = process.env['RUNNER_TEMP'] || ''
   if (!tempDirectory) {
@@ -26,10 +26,14 @@ export async function createTempDirectory(): Promise<string> {
   return dest
 }
 
+export function getRemoteURL(user: string, repo: string, token: string): string {
+  return `https://x-access-token:${token}@github.com/${user}/${repo}.git`
+}
+
 export async function checkoutRepo(
   remoteURL: string,
   targetBranch: string
-): Promise<void> {
+): Promise<string> {
   const tempDirectory = await createTempDirectory()
   const code = await exec.exec('git', [
     'clone',
@@ -41,4 +45,6 @@ export async function checkoutRepo(
     tempDirectory
   ])
   core.info(`Code: ${code}`)
+
+  return tempDirectory;
 }

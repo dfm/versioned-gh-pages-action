@@ -1,11 +1,10 @@
 import * as core from '@actions/core'
-import {context} from '@actions/github'
 import * as semver from 'semver'
 
 // Ref: https://github.com/crazy-max/ghaction-docker-meta/blob/master/src/meta.ts
-export function getTag(): string {
+export function getTag(ref: string): string {
   // First handle tags
-  let main: string = context.ref
+  let main: string = ref
   if (main.startsWith('refs/tags/')) {
     main = main.replace(/^refs\/tags\//g, '').replace(/\//g, '-')
     const cleaned = semver.clean(main)
