@@ -135,7 +135,7 @@ function updateVersions(workDir, currentVersion) {
         data.versions = [currentVersion];
     if (!data.versions.includes(currentVersion))
         data.versions.push(currentVersion);
-    fs.writeFileSync(filepath, data.toString());
+    fs.writeFileSync(filepath, JSON.stringify(data));
     return data.versions;
 }
 exports.updateVersions = updateVersions;
