@@ -121,9 +121,13 @@ export function updateVersions(
   ) {
     data.stable = currentVersion
   }
-
-  // If there is no tagged versions, we'll save this as the current stable release
-  if (!data.stable) data.stable = currentVersion
+  if (!data.stable) {
+    if (sortedReleases.length > 0) {
+      data.stable = sortedReleases[sortedReleases.length - 1]
+    } else {
+      data.stable = currentVersion
+    }
+  }
 
   // Update the database of saved versions
   fs.writeFileSync(filepath, JSON.stringify(data))

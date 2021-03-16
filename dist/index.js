@@ -140,13 +140,21 @@ function updateVersions(workDir, currentVersion) {
     if (!data.versions.includes(currentVersion))
         data.versions.push(currentVersion);
     // Sort the tagged releases and select the stable version as the most recent
-    const sortedReleases = data.versions.filter((v) => semver.valid(v)).sort(semver.compare);
-    if (sortedReleases.includes(currentVersion) && sortedReleases[sortedReleases.length - 1] === currentVersion) {
+    const sortedReleases = data.versions
+        .filter(v => semver.valid(v))
+        .sort(semver.compare);
+    if (sortedReleases.includes(currentVersion) &&
+        sortedReleases[sortedReleases.length - 1] === currentVersion) {
         data.stable = currentVersion;
     }
-    // If there is no tagged versions, we'll save this as the current stable release
-    if (!data.stable)
-        data.stable = currentVersion;
+    if (!data.stable) {
+        if (sortedReleases.length > 0) {
+            data.stable = sortedReleases[sortedReleases.length - 1];
+        }
+        else {
+            data.stable = currentVersion;
+        }
+    }
     // Update the database of saved versions
     fs.writeFileSync(filepath, JSON.stringify(data));
     core.info(`[INFO] Available versions: ${data.versions}`);
